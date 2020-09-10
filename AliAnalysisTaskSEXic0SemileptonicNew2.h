@@ -68,9 +68,9 @@ class AliAnalysisTaskSEXic0SemileptonicNew2 : public AliAnalysisTaskSE
     void SetMC(Bool_t ismc) { IsMC = ismc; };
     void SetRunOffset(Int_t RunOffset) { fRunOffset = RunOffset; };
     void SetHighMultiplicity(Bool_t IsHM) { IsHighMul = IsHM; };
-	void IsPP(Bool_t ispp) { kPP = kTRUE; };
-	void IsPA(Bool_t ispa) { kPA = kTRUE; };
-	void IsAA(Bool_t isaa) { kAA = kTRUE; };
+		void IsPP(Bool_t ispp) { kPP = kTRUE; };
+		void IsPA(Bool_t ispa) { kPA = kTRUE; };
+		void IsAA(Bool_t isaa) { kAA = kTRUE; };
     Int_t GetRunOffset() { return fRunOffset; };
 
     void DefineMCCutTree();

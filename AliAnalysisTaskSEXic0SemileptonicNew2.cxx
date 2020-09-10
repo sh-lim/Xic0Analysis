@@ -225,6 +225,8 @@ void AliAnalysisTaskSEXic0SemileptonicNew2::UserCreateOutputObjects(){
   fHistos->CreateTH2("hXicPtRap","",9,widebin,21,rapbin,"s");
 	fHistos->CreateTH2("hTrueXic0","",7,bin,100,centbin,"s");
 	fHistos->CreateTH2("hTrueXic0W","",7,bin,100,centbin,"s");
+	fHistos->CreateTH2("hTrueXic0SPD","",7,bin,100,centbin,"s");
+	fHistos->CreateTH2("hTrueXic0WSPD","",7,bin,100,centbin,"s");
   fHistos->CreateTH1("hTrueXic0_oldbin","",7,bin_old,"s");
   fHistos->CreateTH1("hTrueXic0W_oldbin","",7,bin_old,"s");
   fHistos->CreateTH1("hTrueXic0_rap8","",7,bin,"s");
@@ -238,6 +240,10 @@ void AliAnalysisTaskSEXic0SemileptonicNew2::UserCreateOutputObjects(){
 	fHistos->CreateTH2("hXic0PtFromBottom2","",7,bin,100,centbin,"s");
   fHistos->CreateTH2("hXic0PtFromCharm1","",7,bin,100,centbin,"s");
   fHistos->CreateTH2("hXic0PtFromCharm2","",7,bin,100,centbin,"s");
+	fHistos->CreateTH2("hXic0PtFromBottom1SPD","",7,bin,100,centbin,"s");
+	fHistos->CreateTH2("hXic0PtFromBottom2SPD","",7,bin,100,centbin,"s");
+  fHistos->CreateTH2("hXic0PtFromCharm1SPD","",7,bin,100,centbin,"s");
+  fHistos->CreateTH2("hXic0PtFromCharm2SPD","",7,bin,100,centbin,"s");
   fHistos->CreateTH1("hElectronFromXic0","",7,bin,"s");
   fHistos->CreateTH1("hCascadeFromXic0","",7,bin,"s");
   fHistos->CreateTH1("hMCXic0AllRap","",12,0,12,"s");
@@ -358,20 +364,22 @@ void AliAnalysisTaskSEXic0SemileptonicNew2::UserExec(Option_t* ){
   fRunNumber = fEvt->GetRunNumber();
   fRunTable = new AliAnalysisTaskSEXic0RunTable(fRunNumber);
 
-  Float_t fCentrality = 300;
+  Float_t fV0MCentrality = 300;
+	Float_t fSPDCentrality = -1;
+	Float_t fV0MValue = 0;
+	Float_t fSPDValue = 0;
   AliMultSelection *MultSelection = 0x0;
   MultSelection = (AliMultSelection *) fEvt->FindListObject("MultSelection");
   if(!MultSelection) {
    //If you get this warning (and lPercentiles 300) please check that the AliMultSelectionTask actually ran (before your task)
    AliWarning("AliMultSelection object not found!");
   }else{
-		if(kPA) fCentrality = MultSelection->GetMultiplicityPercentile("V0A");
-		if(kPP) fCentrality = MultSelection->GetMultiplicityPercentile("V0M");
+		if(kPA) fV0MCentrality = MultSelection->GetMultiplicityPercentile("V0A");
+		if(kPP) fV0MCentrality = MultSelection->GetMultiplicityPercentile("V0M");
+		fSPDCentrality = MultSelection->GetMultiplicityPercentile("SPDTracklets");
+		fV0MValue = MultSelection->GetEstimator("V0M")->GetValue();
+		fSPDValue = MultSelection->GetEstimator("SPDTracklets")->GetValue();
   }
-
-	fEventTreeVariable[0] = fCentrality;
-	fEventTreeVariable[1] = fRunNumber;
-	fEventTreeVariable[2] = GetEvID(); 
 
   fCounter->StoreEvent(fEvt,fEvtCuts,IsMC);
 
@@ -417,19 +425,27 @@ void AliAnalysisTaskSEXic0SemileptonicNew2::UserExec(Option_t* ){
   if(!(fabs(Vtx->GetZ())<10.)) return;
   fHistos->FillTH1("hEventNumbers","Goodzcut",1);
 
-  if(IsHighMul){
-   if(!AliPPVsMultUtils::IsMinimumBias(fEvt)) return;
-   if(!AliPPVsMultUtils::IsINELgtZERO(fEvt)) return;                 //INEL >0
-   if(!AliPPVsMultUtils::IsAcceptedVertexPosition(fEvt)) return;
-   if(!AliPPVsMultUtils::IsNotPileupSPDInMultBins(fEvt)) return;
-   if(!AliPPVsMultUtils::HasNoInconsistentSPDandTrackVertices(fEvt)) return;
- }
+	if(IsHighMul){
+		if(!AliPPVsMultUtils::IsMinimumBias(fEvt)) return;
+		if(!AliPPVsMultUtils::IsINELgtZERO(fEvt)) return;                 //INEL >0
+		if(!AliPPVsMultUtils::IsAcceptedVertexPosition(fEvt)) return;
+		if(!AliPPVsMultUtils::IsNotPileupSPDInMultBins(fEvt)) return;
+		if(!AliPPVsMultUtils::HasNoInconsistentSPDandTrackVertices(fEvt)) return;
+	}
+
+	fEventTreeVariable[0] = fRunNumber;
+	fEventTreeVariable[1] = GetEvID(); 
+	fEventTreeVariable[2] = fV0MCentrality;
+	fEventTreeVariable[3] = fSPDCentrality;
+	fEventTreeVariable[4] = fV0MValue;
+	fEventTreeVariable[5] = fSPDValue;
+	fEventTreeVariable[6] = Vtx->GetZ();
  // -----------------------------------------------------------------------
  //-----------------------Event Selection End------------------------------
  // -----------------------------------------------------------------------
 
  fHistos->FillTH1("NumOfEvtperRun",fRunNumber-fRunOffset);
- fHistos->FillTH1("Centrality",fCentrality);
+ fHistos->FillTH1("Centrality",fV0MCentrality);
 
  if (IsMC && fEvt->IsA()==AliAODEvent::Class())
  {
@@ -872,13 +888,25 @@ void AliAnalysisTaskSEXic0SemileptonicNew2::FillMCXic0(AliAODMCParticle *mcpart)
   if(motherxic>0 && e_flag && xi_flag){
     AliAODMCParticle* MCMother = (AliAODMCParticle*) fMC->GetTrack(motherxic);
     if(((TMath::Abs(MCMother->GetPdgCode()))==5132) || ((TMath::Abs(MCMother->GetPdgCode()))==5232)){  //Xib
-      if(MCe->Charge()>0 && MCcasc->Charge()<0 && fabs(mcpart->Y())<0.5) fHistos->FillTH2("hXic0PtFromBottom1",mcpart->Pt(),fEventTreeVariable[0]);
-      if(MCe->Charge()<0 && MCcasc->Charge()>0 && fabs(mcpart->Y())<0.5) fHistos->FillTH2("hXic0PtFromBottom2",mcpart->Pt(),fEventTreeVariable[0]);
+      if(MCe->Charge()>0 && MCcasc->Charge()<0 && fabs(mcpart->Y())<0.5){
+				fHistos->FillTH2("hXic0PtFromBottom1",mcpart->Pt(),fEventTreeVariable[2]);
+				fHistos->FillTH2("hXic0PtFromBottom1SPD",mcpart->Pt(),fEventTreeVariable[5]);
+			}
+      if(MCe->Charge()<0 && MCcasc->Charge()>0 && fabs(mcpart->Y())<0.5){
+				fHistos->FillTH2("hXic0PtFromBottom2",mcpart->Pt(),fEventTreeVariable[2]);
+				fHistos->FillTH2("hXic0PtFromBottom2SPD",mcpart->Pt(),fEventTreeVariable[5]);
+			}
       fHistos->FillTH1("hNonPromptXicRap",mcpart->Y());
       }
     else{
-			if(MCe->Charge()>0 && MCcasc->Charge()<0 && fabs(mcpart->Y())<0.5) fHistos->FillTH2("hXic0PtFromCharm1",mcpart->Pt(),fEventTreeVariable[0]);
-			if(MCe->Charge()<0 && MCcasc->Charge()>0 && fabs(mcpart->Y())<0.5) fHistos->FillTH2("hXic0PtFromCharm2",mcpart->Pt(),fEventTreeVariable[0]);
+			if(MCe->Charge()>0 && MCcasc->Charge()<0 && fabs(mcpart->Y())<0.5){
+				fHistos->FillTH2("hXic0PtFromCharm1",mcpart->Pt(),fEventTreeVariable[2]);
+				fHistos->FillTH2("hXic0PtFromCharm1SPD",mcpart->Pt(),fEventTreeVariable[5]);
+			}
+			if(MCe->Charge()<0 && MCcasc->Charge()>0 && fabs(mcpart->Y())<0.5){
+				fHistos->FillTH2("hXic0PtFromCharm2",mcpart->Pt(),fEventTreeVariable[2]);
+				fHistos->FillTH2("hXic0PtFromCharm2SPD",mcpart->Pt(),fEventTreeVariable[5]);
+			}
       fHistos->FillTH1("hPromptXicRap",mcpart->Y());
     }
   }
@@ -895,9 +923,11 @@ void AliAnalysisTaskSEXic0SemileptonicNew2::FillMCXic0(AliAODMCParticle *mcpart)
     if(fabs(mcpart->Y())<0.5){
       fHistos->FillTH2("hMCXic0vsPair",mcpart->Pt(),eXi);
       fHistos->FillTH1("hTruePaireXi",eXi);
-      fHistos->FillTH2("hTrueXic0",mcpart->Pt(),fEventTreeVariable[0]);
+      fHistos->FillTH2("hTrueXic0",mcpart->Pt(),fEventTreeVariable[2]);
+      fHistos->FillTH2("hTrueXic0SPD",mcpart->Pt(),fEventTreeVariable[5]);
       fHistos->FillTH1("hTrueXic0_oldbin",mcpart->Pt());
-      fHistos->FillTH2("hTrueXic0W",mcpart->Pt(),fEventTreeVariable[0],fWeightFit->Eval(mcpart->Pt()));
+      fHistos->FillTH2("hTrueXic0W",mcpart->Pt(),fEventTreeVariable[2],fWeightFit->Eval(mcpart->Pt()));
+      fHistos->FillTH2("hTrueXic0WSPD",mcpart->Pt(),fEventTreeVariable[5],fWeightFit->Eval(mcpart->Pt()));
       fHistos->FillTH1("hTrueXic0W_oldbin",mcpart->Pt(),fWeightFit->Eval(mcpart->Pt()));
       fHistos->FillTH1("hElectronFromXic0",MCe->Pt());
       fHistos->FillTH1("hCascadeFromXic0",MCcasc->Pt());
@@ -964,8 +994,8 @@ void AliAnalysisTaskSEXic0SemileptonicNew2::FillBottomContribution(AliAODMCParti
 }
 
 void AliAnalysisTaskSEXic0SemileptonicNew2::FillPairEleXi(AliAODcascade *casc, AliAODTrack *trk){
-	if ( fEventTreeVariable[0]<0 || fEventTreeVariable[0]>100 ){
-		cout << "Centrality2 out of range: " << fEventTreeVariable[0] << endl;
+	if ( fEventTreeVariable[2]<0 || fEventTreeVariable[2]>100 ){
+		cout << "Centrality2 out of range: " << fEventTreeVariable[2] << endl;
 	}
 
   for(Int_t i=0; i<38; i++) fPaireXiTreeVariable[i] = -9999.;
@@ -1570,13 +1600,17 @@ void AliAnalysisTaskSEXic0SemileptonicNew2::DefineMCPaireXiTree(){
 
 void AliAnalysisTaskSEXic0SemileptonicNew2::DefineEventTree(){
   fEventTree = new TTree("EventTree","EventTree");
-  Int_t nVar = 3;
+  Int_t nVar = 7;
   fEventTreeVariable = new Float_t [nVar];
   TString * fTreeVariableNames = new TString[nVar];
 
-  fTreeVariableNames[ 0]="fCentrality";
-  fTreeVariableNames[ 1]="fRunNumber";
-  fTreeVariableNames[ 2]="fEventID";
+	fTreeVariableNames[ 0]="fRunNumber";
+	fTreeVariableNames[ 1]="fEventID";
+	fTreeVariableNames[ 2]="fV0MCentrality";
+	fTreeVariableNames[ 3]="fSPDCentrality";
+	fTreeVariableNames[ 4]="fV0MValue";
+	fTreeVariableNames[ 5]="fPSDValue";
+	fTreeVariableNames[ 6]="fVertexZ";
 
   for (Int_t ivar=0; ivar<nVar; ivar++) fEventTree->Branch(fTreeVariableNames[ivar].Data(),&fEventTreeVariable[ivar],Form("%s/f",fTreeVariableNames[ivar].Data()));
 
