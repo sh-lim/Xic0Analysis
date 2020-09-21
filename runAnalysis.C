@@ -5,12 +5,13 @@
 //#include "AliMultSelectionTask.h"
 //#include "AliAnalysisTaskPIDResponse.h"
 //#include "AliPhysicsSelectionTask.h"
-//#include "AliAnalysisTaskSEXic0SemileptonicNew2.h"
+#include "AliAnalysisTaskSEXic0SemileptonicNew2.h"
+//#include "AliAnalysisTaskSEXic0SemileptonicEvent.h"
 
 void runAnalysis(
 		const char *taskname = "XiSHLNew2B"
-		,const char *option = "LHC17MC3" // when scanning AOD, add "AOD"
-		//,const char *option = "LHC17m" // when scanning AOD, add "AOD"
+		//,const char *option = "LHC17MC3" // when scanning AOD, add "AOD"
+		,const char *option = "LHC17m" // when scanning AOD, add "AOD"
 		,const char *mode = "full" //full, termiante, merge
 		)
 {
@@ -44,29 +45,33 @@ void runAnalysis(
 	// compile the class and load the add task macro
 	// here we have to differentiate between using the just-in-time compiler
 	// from root6, or the interpreter of root5
-	//AliPhysicsSelectionTask *physSelTask = reinterpret_cast<AliPhysicsSelectionTask *>(gInterpreter->ProcessLine(Form(".x %s(%d,%d)", gSystem->ExpandPathName("$ALICE_PHYSICS/OADB/macros/AddTaskPhysicsSelection.C"),ismc,1)));
-	//if(!physSelTask) { Printf("no physSelTask"); return; }
-	gROOT->LoadMacro("$ALICE_PHYSICS/OADB/macros/AddTaskPhysicsSelection.C");
-	AliPhysicsSelectionTask *physSelTask = AddTaskPhysicsSelection(ismc,1);    //1=pp,pPb, 0=PbPb
+	AliPhysicsSelectionTask *physSelTask = reinterpret_cast<AliPhysicsSelectionTask *>(gInterpreter->ProcessLine(Form(".x %s(%d,%d)", gSystem->ExpandPathName("$ALICE_PHYSICS/OADB/macros/AddTaskPhysicsSelection.C"),ismc,1)));
+	if(!physSelTask) { Printf("no physSelTask"); return; }
+	//gROOT->LoadMacro("$ALICE_PHYSICS/OADB/macros/AddTaskPhysicsSelection.C");
+	//AliPhysicsSelectionTask *physSelTask = AddTaskPhysicsSelection(ismc,1);    //1=pp,pPb, 0=PbPb
 
-	//AliMultSelectionTask *multTask = reinterpret_cast<AliMultSelectionTask *>(gInterpreter->ProcessLine(Form(".x %s(%d)", gSystem->ExpandPathName("$ALICE_PHYSICS/OADB/COMMON/MULTIPLICITY/macros/AddTaskMultSelection.C"),1)));
-	//if(!multTask) { Printf("no multTask"); return; }
-	gROOT->LoadMacro( "$ALICE_PHYSICS/OADB/COMMON/MULTIPLICITY/macros/AddTaskMultSelection.C");
-	AliMultSelectionTask* multtask = AddTaskMultSelection(kTRUE);
+	AliMultSelectionTask *multTask = reinterpret_cast<AliMultSelectionTask *>(gInterpreter->ProcessLine(Form(".x %s(%d)", gSystem->ExpandPathName("$ALICE_PHYSICS/OADB/COMMON/MULTIPLICITY/macros/AddTaskMultSelection.C"),1)));
+	if(!multTask) { Printf("no multTask"); return; }
+	//gROOT->LoadMacro( "$ALICE_PHYSICS/OADB/COMMON/MULTIPLICITY/macros/AddTaskMultSelection.C");
+	//AliMultSelectionTask* multtask = AddTaskMultSelection(kTRUE);
 
-	//AliAnalysisTaskPIDResponse *pidResponseTask = reinterpret_cast<AliAnalysisTaskPIDResponse *>(gInterpreter->ProcessLine(Form(".x %s(%d)", gSystem->ExpandPathName("$ALICE_ROOT/ANALYSIS/macros/AddTaskPIDResponse.C"),ismc)));
-	//if(!pidResponseTask) { Printf("no pidResponseTask"); return; }
-	gROOT->LoadMacro("$ALICE_ROOT/ANALYSIS/macros/AddTaskPIDResponse.C");
-	AliAnalysisTaskPIDResponse *pidResponseTask = AddTaskPIDResponse(ismc);
+	AliAnalysisTaskPIDResponse *pidResponseTask = reinterpret_cast<AliAnalysisTaskPIDResponse *>(gInterpreter->ProcessLine(Form(".x %s(%d)", gSystem->ExpandPathName("$ALICE_ROOT/ANALYSIS/macros/AddTaskPIDResponse.C"),ismc)));
+	if(!pidResponseTask) { Printf("no pidResponseTask"); return; }
+	//gROOT->LoadMacro("$ALICE_ROOT/ANALYSIS/macros/AddTaskPIDResponse.C");
+	//AliAnalysisTaskPIDResponse *pidResponseTask = AddTaskPIDResponse(ismc);
 
-	gInterpreter->LoadMacro("AliAnalysisTaskSEXic0SemileptonicNew2.cxx++g"); 
 	//gInterpreter->LoadMacro("AliAnalysisTaskSEXic0SemileptonicEvent.cxx++g"); 
-	//AliAnalysisTaskSEXic0SemileptonicNew2 *task = reinterpret_cast<AliAnalysisTaskSEXic0SemileptonicNew *>(gInterpreter->ProcessLine(Form(".x AddMyTaskXic0New.C(\"%s\",\"%s%s\")",taskname,taskname,option)));
-	//AliAnalysisTaskSEXic0SemileptonicNew2 *task = new AliAnalysisTaskSEXic0SemileptonicNew2(taskname, Form("%s%s",taskname,option));
-	gROOT->LoadMacro("AddMyTaskXic0New2.C");
-	AliAnalysisTaskSEXic0SemileptonicNew2 *task = AddMyTaskXic0New2(taskname, Form("%s%s",taskname,option));
+	//AliAnalysisTaskSEXic0SemileptonicEvent *task = reinterpret_cast<AliAnalysisTaskSEXic0SemileptonicEvent *>(gInterpreter->ProcessLine(Form(".x AddMyTaskXic0Event.C(\"%s\",\"%s%s\")",taskname,taskname,option)));
+	//gROOT->LoadMacro("AliAnalysisTaskSEXic0SemileptonicEvent.cxx++g");
 	//gROOT->LoadMacro("AddMyTaskXic0Event.C");
 	//AliAnalysisTaskSEXic0SemileptonicEvent *task = AddMyTaskXic0Event(taskname, Form("%s%s",taskname,option));
+
+	gInterpreter->LoadMacro("AliAnalysisTaskSEXic0SemileptonicNew2.cxx++g"); 
+	AliAnalysisTaskSEXic0SemileptonicNew2 *task = reinterpret_cast<AliAnalysisTaskSEXic0SemileptonicNew2 *>(gInterpreter->ProcessLine(Form(".x AddMyTaskXic0New2.C(\"%s\",\"%s%s\")",taskname,taskname,option)));
+	//gROOT->LoadMacro("AddMyTaskXic0New2.C");
+	//AliAnalysisTaskSEXic0SemileptonicNew2 *task = AddMyTaskXic0New2(taskname, Form("%s%s",taskname,option));
+	
+	if(!task) { Printf("no mytask"); return; }
 	task->IsPP(true);
 	task->SetMC(ismc);
 	if(foption.Contains("LHC16MCk")){ task->SetRunOffset(256941); }
@@ -81,10 +86,9 @@ void runAnalysis(
 	else if(
 			foption.Contains("LHC18MC2")
 			|| foption.Contains("LHC18b")
+			|| foption.Contains("LHC18d")
 			){ task->SetRunOffset(285009); }
 	else if(foption.Contains("LHC18MC3")){ task->SetRunOffset(290323); }	
-	//gInterpreter->LoadMacro("AliAnalysisTaskMyTask.cxx++g"); 
-	//AliAnalysisTaskMyTask *task = reinterpret_cast<AliAnalysisTaskMyTask *>(gInterpreter->ProcessLine(".x AddMyTask.C"));
 
 	if(!mgr->InitAnalysis()) return;
 	mgr->SetDebugLevel(2);
@@ -156,6 +160,40 @@ void runAnalysis(
 				){ 
 			alienHandler->SetGridDataDir(Form("/alice/data/2018/%s",option));
 			alienHandler->SetDataPattern("/pass1/AOD208/*/AliAOD.root");
+		}else if (foption.Contains("LHC17c")
+				|| foption.Contains("LHC17e")
+				|| foption.Contains("LHC17f")
+				|| foption.Contains("LHC17h")
+				|| foption.Contains("LHC17i")
+				|| foption.Contains("LHC17j")
+				|| foption.Contains("LHC17k")
+				|| foption.Contains("LHC17l")
+				|| foption.Contains("LHC17m")
+				|| foption.Contains("LHC17o")
+				|| foption.Contains("LHC17r")
+				){ 
+			alienHandler->SetGridDataDir(Form("/alice/data/2017/%s",option));
+			alienHandler->SetDataPattern("/pass1/AOD208/*/AliAOD.root");
+		}else if (foption.Contains("LHC16k")
+				|| foption.Contains("LHC16l")
+				){
+			alienHandler->SetGridDataDir(Form("/alice/data/2016/%s",option));
+			alienHandler->SetDataPattern("/pass2/AOD208/*/AliAOD.root");
+		}else if (foption.Contains("LHC16d")
+				|| foption.Contains("LHC16e")
+				|| foption.Contains("LHC16g")
+				|| foption.Contains("LHC16h")
+				|| foption.Contains("LHC16j")
+				|| foption.Contains("LHC16o")
+				|| foption.Contains("LHC16p")
+				){
+			alienHandler->SetGridDataDir(Form("/alice/data/2016/%s",option));
+			alienHandler->SetDataPattern("/pass1/AOD208/*/AliAOD.root");
+		}else if (foption.Contains("LHC16q")
+				|| foption.Contains("LHC16t")
+				){
+			alienHandler->SetGridDataDir(Form("/alice/data/2016/%s",option));
+			alienHandler->SetDataPattern("/pass1_CENT_wSDD/AOD190/*/AliAOD.root");
 		}
 		// MC has no prefix, data has prefix 000
 		if(!ismc) alienHandler->SetRunPrefix("000");
@@ -182,6 +220,7 @@ void runAnalysis(
 		// (see below) mode, set SetMergeViaJDL(kFALSE) 
 		// to collect final results
 		alienHandler->SetMaxMergeStages(1);
+		//alienHandler->SetNrunsPerMaster(1);
 		if ( strstr(mode,"full") || strstr(mode,"terminate") ){
 			alienHandler->SetMergeViaJDL(kTRUE);
 		}else{
@@ -191,6 +230,7 @@ void runAnalysis(
 		// define the output folders
 		alienHandler->SetGridWorkingDir(Form("myWorkingDir%s%s",taskname,option));
 		alienHandler->SetGridOutputDir("myOutputDir");
+		//alienHandler->SetUseSubmitPolicy();
 
 		// connect the alien plugin to the manager
 		mgr->SetGridHandler(alienHandler);

@@ -59,6 +59,7 @@
 //#include "AliAnalysisTaskSEHFTreeCreator.h"
 #include "AliMultSelection.h"
 
+using namespace std;
 
 const Double_t pi = TMath::Pi();
 enum {  kPN=1, kPP, kNN, kMixing, kAllType}; //P=Positive charge, N=Negative
